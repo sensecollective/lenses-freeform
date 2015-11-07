@@ -213,7 +213,7 @@
       background-color: #FFF;
       z-index: 201;
 
-    }	
+    } 
 
     #component_list /deep/ iron-menu {
       background-color: rgba(255,255,255,0.8);
@@ -397,9 +397,9 @@
         padding: 4px;
         margin-top: -6px;
         transition: opacity 0.3s ease-in;
-        width: 170px;
-        overflow-y: scroll;
-        max-height: 200px;
+        width: 300px;
+        /*overflow-y: scroll;*/
+        /*max-height: 200px;*/
     }
 
     .lens-component-resizable {
@@ -708,4 +708,4 @@
           
     } 
 
-}         
+}

@@ -1,6 +1,4 @@
 <link rel="import" href="../polymer/polymer.html">
-<!-- <link rel="import" href="../lens-data-table/lens-data-table.html"> -->
-<!-- <link rel="import" href="../lenses-component-list/lenses-component-list.html"> -->
 <link rel="import" href="../paper-input/paper-input.html">
 <link rel="import" href="../iron-selector/iron-selector.html">
 <link rel="import" href="../paper-icon-button/paper-icon-button.html">
@@ -312,8 +310,10 @@
       this.$.zoomRange.value = this._zoom;
     },
 
-    addNewElToLens: function (newElName, left, top) {
+    addNewElToLens: function (newElName, _left, _top) {
       var newEl = document.createElement(newElName);
+      var top = _top / this._zoom;
+      var left = _left / this._zoom;
       this.$.component_list.checkAndImport(newEl, function () {
   
         //TODO redundant code (_processNewElement)
@@ -337,8 +337,8 @@
 
         newEl.classList.add('lens-component');
 
-        Polymer.dom(this.root).appendChild(newEl);
-        this._processNewElement(newEl, top / this._zoom, left / this._zoom);
+        Polymer.dom(this.$.container).appendChild(newEl);
+        this._processNewElement(newEl, top, left);
         this._renderContainerTemplate();
       }.bind(this));
     },
@@ -402,8 +402,8 @@
 
         self.set('_elements', filteredEls);
 
-        // remove elements from lens-connector 
-        self.removeChild(embeddedEl);
+        // remove elements
+        Polymer.dom(self.$.container).removeChild(embeddedEl);
       };
     },
     removeAllConnectionsFromElement: function (elId) {
@@ -430,12 +430,12 @@
       }
       elName = elNameArray.join('-');
       this.addNewElToLens(elName, e.x, e.y);
-      var dx = e.x - (e.toElement.getAttribute('start-x') || 0), dy = e.y - (e.toElement.getAttribute('start-y') || 0);
+      var dx = e.x - (e.target.getAttribute('start-x') || 0), dy = e.y - (e.target.getAttribute('start-y') || 0);
       console.log(dx, dy);  // if other wrappers were selected, also clone those
       // if other wrappers were selected, also clone those
       for (var i = 0; i < this._selWrappers.length; i++) {
         var target = this._selWrappers[i];
-        if (target === e.toElement) {
+        if (target === e.target) {
           return;
         } else {
           var orig = target.getBoundingClientRect();  // find each element's distance from the e.toElement
@@ -473,7 +473,7 @@
       }
     },
     clickInContainer: function (e) {
-      var className = e.toElement.className;
+      var className = e.target.className;
       if (className.baseVal && className.baseVal.indexOf('cnxn') > -1) {
         console.log('clicked on connection');
         this.clickedOnConnection(e);
@@ -486,8 +486,7 @@
       }
     },
     clickedOnConnection: function (e) {
-      var bezier = Polymer.dom(this.root).querySelector('#' + e.toElement.id);
-      console.log(bezier);
+      var bezier = Polymer.dom(this.root).querySelector('#' + e.target.id);
       if (String(bezier.classList).indexOf('highlight') > -1) {
         // console.log('delete');
         this._deleteBezier(e, bezier);
@@ -537,7 +536,7 @@
       }
 
       var wrapperTop = parseInt(wrapper.getBoundingClientRect().top), wrapperLeft = parseInt(wrapper.getBoundingClientRect().left);
-      var w = e.x / this._zoom - wrapperLeft, h = e.y / this._zoom - wrapperTop;
+      var w = e.x / this._zoom - wrapperLeft / this._zoom, h = e.y / this._zoom - wrapperTop / this._zoom;
 
 
       var elementInsideId = wrapper.componentId;
@@ -1113,10 +1112,10 @@
 
             // find the actual output?
             // var output = target.element.output;
-
-            target.element[targetField] = e.detail;
+            var newOutput = e.detail;
+            target.element[targetField] = newOutput;
           }
-          source.element.addEventListener('lens-ouput-changed', listener);
+          source.element.addEventListener('olos-ouput-changed', listener);
         }
         
         
