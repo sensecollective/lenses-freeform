@@ -7,6 +7,30 @@
 
     }
 
+    /* general style */
+
+    .float-left {
+      float: left;
+    }
+
+    .float-right {
+      float: right;
+    }
+
+    .pad-right {
+      padding-right: 40px;
+    }
+
+    paper-icon-button.play {
+      color: #E57F7F;
+    }
+
+    paper-icon-button.play:hover {
+      color:#DF4949;
+    }
+
+    /* right / left slide */
+
     .slideout {
       position: fixed;
       -webkit-transition-duration: 0.3s;
@@ -129,10 +153,10 @@
       right: -130px;
     }
     .output-slideout:hover {
-      right: 130px;
+      // right: 130px;
     }
     .output-slideout:hover .slideout-inner {
-      right: 0;
+      // right: 0;
     }
 
     .output-slideout .label {
@@ -457,6 +481,33 @@
       color: #000;
     }
 
+    /*
+    
+      element top nav
+
+     */
+    .elt-top-bar {
+       display:inline-block;
+    }
+
+    .wrapper .elt-top-bar iron-icon {
+       width:12px;
+     }
+
+    .wrapper label.elt-info-label {
+      left: initial;
+      right: 15px;
+      top: -20px;
+      cursor:help;
+    }
+
+    .wrapper label.elt-src-label {
+      left: initial;
+      right: 0px;
+      top: -20px;
+      cursor: alias;
+    }
+
 
 /*      .wrapper .resize {
       position: absolute;
@@ -637,6 +688,46 @@
       z-index: 200;
     }
 
+    .output {
+      position:fixed;
+      z-index: 0;
+      height: 100px;
+      width: 50px;
+      pointer-events:all;
+      display:inline-block;
+    }
+
+
+
+    iframe.docs-frame {
+        width:100%;
+        position: relative;
+        height: 100%;
+        padding: 0px;
+        margin:0px;
+    }
+
+    paper-dialog.elt-dialog {
+      width:680px;
+      height:450px;
+      padding: 0px;
+      margin:0px;
+    }
+
+    paper-dialog > *:first-child {
+      margin-top:0px;
+    }
+
+    /*
+    
+      Code Editor
+
+     */
+
+    ace-widget {
+      width: 680px;
+      height: 100%;
+    }
 
     /*
     

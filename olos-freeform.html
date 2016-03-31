@@ -4,9 +4,19 @@
 <link rel="import" href="../paper-icon-button/paper-icon-button.html">
 <link rel="import" href="../iron-collapse/iron-collapse.html">
 <link rel="import" href="../iron-flex-layout/iron-flex-layout.html">
+<link rel="import" href="../iron-doc-viewer/iron-doc-viewer.html">
+<link rel="import" href="../iron-icons/iron-icons.html">
+
+<link rel="import" href="../paper-toolbar/paper-toolbar.html">
+<link rel="import" href="../paper-dialog/paper-dialog.html">
+
+<link rel="import" href="../ace-widget/ace-widget.html">
+
 
 <link rel="import" href="../lens-ui-dialog/lens-ui-dialog.html">
 <link rel="import" href="../olos-component-list/olos-component-list.html">
+<link rel="import" href="../olos-destination/olos-destination.html">
+<link rel="import" href="../olos-clock/olos-clock.html">
 
 <dom-module id="olos-freeform">
   <style>
@@ -25,14 +35,39 @@
   </style>
 
   <!-- load external libraries -->
+  <script src="../../Tone.js/build/Tone.js"></script>
   <script src="../p5js/p5.js"></script>
   <script src="../p5js/p5.sound.js"></script>
   <script>
       audioContext = p5.prototype.getAudioContext();
+      Tone.setContext(audioContext);
   </script>
+
 
   <link rel="import" type="css" href="olos-freeform.css">
   <template>
+
+    <style is="custom-style">
+      paper-toolbar {
+        /*--paper-toolbar-background: rgba(63, 81, 181, 0.67);*/
+        --paper-toolbar-background: #FDF6E3;
+        --paper-toolbar-color: #636363;
+      }
+
+      paper-toolbar.topnav {
+        --paper-toolbar-background: #C5C5C3;
+        --paper-toolbar: {
+           position:fixed;
+           width:100%;
+           z-index:100;
+         };
+      }
+
+    </style>
+    <paper-toolbar class="topnav">
+      <h1 style="margin-left:30px;color: #8C6E9D"> (( Olos )) </h1>
+      <olos-clock style="margin-left:30px; height:20px;"></olos-clock>
+    </paper-toolbar>
 
     <div class="settings-slideout slideout right">
 
@@ -52,6 +87,7 @@
 
 
     <div class="zoom-slideout slideout left">
+
       <span class="slideout-handle">zoom</span>
       <div class="slideout-inner">
         <div id="zoomOptions">
@@ -80,37 +116,71 @@
       </div>
     </div>
 
-    <div class="output-slideout slideout right">
-      <span class="slideout-handle">output components</span>
-      <div class="slideout-inner">
-
-
-        <label class="label">Select output component:</label>
-
-        <template is="dom-if" if="{{computeElementsEmpty()}}" restamp="true">
-          <div>No component in canvas!</div>
-
-        </template> 
-        <iron-selector class="output-selector" selected="{{_outputComponents}}" valueattr="label" multi="true">
-          <template is="dom-repeat"  items="{{_elements}}" as="el" index-as="index" observe="id">
-            <div class="col" label="{{el.id}}">{{el.id}}</div>
-          </template> 
-        </iron-selector>
-
-      </div>
+    <!-- destination -->
+    <div id="wrapper-olos-destination" class="olos-destination drop-zone output-slideout output left" on-dragend="droppedOnDestination" on-drop="droppedOnDestination" on-click="clickedOnDestination" style="z-index:1000; right:0px;">
+      <olos-destination id="olos-destination" class="olos-destination" on-dragover="draggedOverContainer" 
+      style="position:absolute; right:0px;"></olos-destination>
     </div>
 
-    <!-- Lens Data Table - commenting this out for now 8/10/15 -->
-<!--     <div id="input_preview" class$="{{computeClass(_selElement, _showDataTable)}}">
-      <template is="dom-if" if="{{computeIf(_selElement, _showDataTable)}}">
-        <label>INPUT</label>
-        <lens-data-table id="input_table" input="{{_selElement.input}}" class="table" minimal="true"></lens-data-table>
-      </template>
-    </div> -->
 
+    <!-- MODALS -->
+    <lens-ui-dialog autoclosedisabled="" id="deleteDialog">
+      <p>Are you sure you want to remove the selected item?</p>
+      <div horizontal="" end-justified="" layout="">
+        <paper-icon-button icon="clear" dismissive="" on-click="_noDelete"></paper-icon-button>
+        <paper-icon-button icon="check" affirmative="" on-click="_yesDelete"></paper-icon-button>
+      </paper-icon-button></div>
+    </lens-ui-dialog>
+
+    <!-- Title and Author fields + save action in dialog-->
+    <lens-ui-dialog class="dialog" id="savedetails">
+      <h1><paper-input label="Title of Lens" value="{{lensTitle}}"></paper-input></h1>
+      <h3><paper-input label="Your Name" value="{{lensAuthor}}"></paper-input></h3>
+      <paper-icon-button class="save" affirmative="" icon="check" ng-click="saveLens()" on-click="_saveLens">
+      <paper-icon-button class="" dismissive="" icon="clear"></paper-icon-button> 
+    </paper-icon-button></lens-ui-dialog>
+
+    <!-- Docs Dialog -->
+    <paper-dialog class="elt-dialog" id="infoDialog">
+        <iframe class="docs-frame" src="[[_selElementDocPath]]">
+        </iframe>
+    </paper-dialog>
+
+    <!-- Code Dialog -->
+    <paper-dialog class="elt-dialog" id="codeDialog">
+
+      <paper-toolbar>
+        <span class="title float-left">{{_selElement.varName}}</span>
+
+
+        <paper-icon-button class="play" title="Run Code" icon="av:play-circle-filled" on-click="updateCode"></paper-icon-button>
+
+        <paper-dropdown-menu id="methodDropdown" label="{{_selectedMethod}}" class="dropdown-trigger float-right">
+
+            <paper-menu selected="0" id="selector" on-iron-select="_methodChanged" class="menu dropdown-content">
+            <template is="dom-repeat" as="meth" items="{{_publicMethods}}">
+              <paper-item label="{{meth}}">{{meth}}</paper-item>
+            </template>
+          </paper-menu>
+        <!-- </paper-dropdown> -->
+      </paper-dropdown-menu>
+    
+
+      </paper-toolbar>
+
+      <ace-widget id="codeEditor" theme="ace/theme/solarized_light" mode="ace/mode/javascript"></ace-widget>
+    </paper-dialog>
+
+
+
+
+    <!-- container -->
     <div id="container" on-mousedown="clickInContainer" on-drop="droppedInContainer" on-dragover="draggedOverContainer" on-mouseup="dragEndSVG" on-mousemove="dragSVG">
-<!--       <svg id="svg" style="z-index:1000;"></svg>
- -->      <svg id="svg"></svg>
+
+      <svg id="svg">
+
+      </svg>
+
 
 
       <!-- Components and connector dots --> 
@@ -120,12 +190,15 @@
 
         <div id="{{computeWrapperId(el)}}" component-id="{{el.id}}" on-click="wrapperClicked" on-dragstart="dragStartWrapper" on-drag="dragWrapper" on-dragend="dragEndWrapper" draggable="true" class$="{{concatClassNames()}}" style$="{{computeWrapperStyles(el)}}">
 
-          <label>{{el.id}}</label>
-          <div class="deleteEl" component_id="{{el.id}}" on-click="_deleteElementEvent">X</div>
+          <span class="elt-top-bar">
+            <label>{{el.id}}</label>
+            <label class="elt-info-label" on-click="_elInfoButtonClicked"><iron-icon icon="icons:info-outline"></iron-icon></label>
+            <label class="elt-src-label" on-click="_elCodeButtonClicked"><iron-icon icon="icons:code"></iron-icon></label>
 
-            
+            <div class="deleteEl" component_id="{{el.id}}" on-click="_deleteElementEvent">X</div>
+          </span>
+            <!-- Input -->
             <div class="connectors-in">
-              <!-- Input -->
               
               <ul>
                 <template is="dom-repeat" items="{{_checkForInputAttr(index)}}" as="ins">
@@ -174,32 +247,9 @@
           
 
       </template>
-    </div> 
 
-    <!-- commenting out for now -->
-<!--     <div id="output_preview" class$="{{computeClass(_selElement, _showDataTable)}}">
-      <template is="dom-if" if="{{computeIf(_selElement, _showDataTable)}}">
-        <label>OUTPUT</label>
-        <lens-data-table id="output_table" input="{{_selElement.output}}" class="table" minimal="true"></lens-data-table>
-      </template>
-    </div>        -->
 
-    <lens-ui-dialog autoclosedisabled="" id="deleteDialog" class="dialog size-position" opened="true">
-      <p>Are you sure you want to remove the selected item?</p>
-      <div horizontal="" end-justified="" layout="">
-        <paper-icon-button icon="clear" dismissive="" on-click="_noDelete"></paper-icon-button>
-        <paper-icon-button icon="check" affirmative="" on-click="_yesDelete"></paper-icon-button>
-      </paper-icon-button></div>
-    </lens-ui-dialog>
-
-    <!-- Title and Author fields + save action in dialog-->
-    <lens-ui-dialog class="dialog" id="savedetails">
-      <h1><paper-input label="Title of Lens" value="{{lensTitle}}"></paper-input></h1>
-      <h3><paper-input label="Your Name" value="{{lensAuthor}}"></paper-input></h3>
-      <paper-icon-button class="save" affirmative="" icon="check" ng-click="saveLens()" on-click="_saveLens">
-      <paper-icon-button class="" dismissive="" icon="clear"></paper-icon-button> 
-    </paper-icon-button></lens-ui-dialog>
-
+    </div> <!-- end container -->
 
   </template>
 </dom-module>
@@ -215,6 +265,10 @@
       },
       _deleteCallback: { value: null },
       _dragArea: { value: null },
+      _dragObj: {
+        value: {},
+        type: Object
+      },
       _elements: {
         type: Array,
         observer: '_elementsChanged',
@@ -248,7 +302,20 @@
           return [];
         }
       },
-      _selElement: { value: null },
+      _selElement: { 
+        value: null,
+        observer: '_selElementChanged',
+      },
+      _selElementDocPath: {
+        value: null
+      },
+      _selectedMethod: {
+        value: undefined,
+      },
+      _publicMethods: {
+        value: [],
+        type: Array
+      },
       _selWrappers: {
         type: Array,
         value: function () {
@@ -292,22 +359,69 @@
         value: null,
         notify: true,
        /* observer: 'scaffold'*/
+      },
+      _customMethods: {
+        value: {},
+        type: Object
       }
     },
     ready: function () {
       this.focus();
       this.tabIndex = 0;
-      this.draw();
+      this.animate();
+
+      this.destination = this.$$('olos-destination');
+      this.clock = this.$$('olos-clock');
+
+
+      this.id = 'olos';
+      this.varName = 'olos';
+      // init custom methods object for the environment
+      this._initCustomMethodsObj(this);
+
 
       // for testing:
-      window.ff = this;
+      window.olos = this;
 
-      // not sure if this event is every being triggered? 9/16
+      this.initEventListeners();
+
+      // if ($('div.core-overlay-backdrop.core-opened').length > 0) e.preventDefault();
+      // });
+
+      this.$.zoomRange.value = this._zoom;
+
+      // start animation loop
+      this.animate();
+
+    },
+
+    initEventListeners: function() {
+      var self = this;
+      // not sure if this event is even being triggered? 9/16
       this.addEventListener('iron-resize', function () {
         console.log('iron resize occured');
         this._drawConnections();
       });
-      this.$.zoomRange.value = this._zoom;
+
+      var dialogs = document.getElementsByTagName('paper-dialog');
+
+      // prevent mousewheel scrolling
+      var drawLoop = 0;
+      document.addEventListener('mousewheel', function(e) {
+        // redraw connections
+        if (drawLoop % 12 === 0) {
+          self._drawConnections();
+        }
+        drawLoop++;
+
+        for (var i = 0; i < dialogs.length; i++) {
+          var d = dialogs[i];
+          if (d.opened) {
+            e.stopPropagation();
+            e.preventDefault();
+          }
+        }
+      });
     },
 
     addNewElToLens: function (newElName, _left, _top) {
@@ -352,23 +466,30 @@
     },
     _processNewElement: function (newEl, top, left) {
       var id = this._generateUniqueId(newEl.tagName.toLowerCase());
-      newEl.setAttribute('id', id);
+
+      newEl.id = id;
+      newEl.varName = this._generateVarName(newEl.id);
 
       var elItem = {
         element: newEl,
         id: newEl.id,
         name: newEl.tagName.toLowerCase(),
         top: top,
-        left: left
+        left: left,
+        varName: newEl.varName,
+        publicMethods: newEl.publicMethods
       };
-      //trying to use transform instead of top/left
-      //transform: 'translate(' + top + 'px, ' + left + 'px)' 
+
       var info = this.$.component_list.getComponentInfo(newEl.tagName.toLowerCase());
       if (info.resizable || info.category === 'visualize') {
         elItem.resizable = true;
         elItem.width = 250;
         elItem.height = 200;
       }
+
+      this._addElementVar(elItem);
+
+      this._initCustomMethodsObj(elItem);
 
       var newElements = this._elements.slice();
       newElements.push(elItem);
@@ -391,6 +512,18 @@
       self._deleteCallback = function () {
         var embeddedEl = self.querySelector('#' + compId);
 
+        // remove _customMethods associated with this element
+        var newCustomMethods = {};
+
+        for (var i in self._customMethods) {
+          if (i !== compId) {
+            newCustomMethods[i] = self._customMethods[i];
+          }
+        }
+
+        self._customMethods = newCustomMethods;
+
+
         var elInArray = self.findElById(compId);  //remove all connections
         //remove all connections
         self.removeAllConnectionsFromElement(compId);  // remove element from elements array (which removes it from the shadowDOM)
@@ -402,16 +535,42 @@
 
         self.set('_elements', filteredEls);
 
+        embeddedEl.dispose();
+
+        // remove var from olos object
+        this[embeddedEl.varName] = null;
+
         // remove elements
         Polymer.dom(self.$.container).removeChild(embeddedEl);
       };
     },
     removeAllConnectionsFromElement: function (elId) {
-      var goodConnections = this._connections.filter(function (conn, index) {
+      var badConnections = this._connections.filter(function (conn, index) {
+        
         //filter if element is source or target of a connection
-        return !(conn.source.id === elId || conn.target.id === elId);
+        return (conn.source.id===elId || conn.target.id === elId);
+         
       });
+
+      var goodConnections = this._connections.filter(function (conn, index) {
+        
+        //filter if element is source or target of a connection
+        return !(conn.source.id===elId || conn.target.id === elId)
+         
+      });
+
       this._connections = goodConnections;
+
+      // disconnect the badConnections
+      for (var i = 0 ; i < badConnections.length; i++) {
+        var src = badConnections[i].source.element[badConnections[i].source.field];
+        if (src instanceof AudioNode) {
+          this._deleteAudioConnection(badConnections[i]);
+        } else {
+          // console.log('removed connection ' + src + ' is not audio!!');
+        }
+      }
+
       this._drawConnections();
     },
     // if option key was pressed, clone the element when drag is done
@@ -453,9 +612,8 @@
     },
     droppedInContainer: function (e) {
       var self = this;
-      //dont know why this method is being called instead of resizedragend?!
 
-      e.preventDefault();
+      // e.preventDefault();
 
       //TODO make a standard uniform way of finding elements. path[0] is ugly 
       if (e.path && e.path.length > 0 && e.path[0].classList.contains('resize') > 0) {
@@ -484,6 +642,10 @@
       if (e.target.id === 'container') {
         this.dragStartSVG(e);
       }
+    },
+    clickedOnDestination: function() {
+      var d = this.$$('olos-destination');
+      d.toggleMute();
     },
     clickedOnConnection: function (e) {
       var bezier = Polymer.dom(this.root).querySelector('#' + e.target.id);
@@ -809,7 +971,8 @@
     },
     //this.$.svg.innerHTML = '';
     dragOutArrowStart: function (e) {
-      this.draggedEl = e.target;  //to stop wrapper drag to be called
+      this.draggedEl = e.target;
+
       //to stop wrapper drag to be called
       e.stopPropagation();
       if (!this.svgTop || !this.svgLeft) {
@@ -824,7 +987,7 @@
       //TODO cache
       //var tempPath = Polymer.dom(this.root).querySelector('#temp_path');
       
-      console.log('points', this.startPointX, this.startPointY, this.tempPath);
+      // console.log('points', this.startPointX, this.startPointY, this.tempPath);
       
       if (!this.tempPath) {
 
@@ -880,7 +1043,7 @@
     droppedOnInArrow: function (e) {
       
       //TODO: depending on classnames is not a safe solution. add componentId or something similar and universal
-      
+
       e.target.classList.remove('drag-over');
       var className = e.target.parentNode.classList[0]; //selection.classList[0],
       var targetElementId = className.substring(0, className.lastIndexOf('-'));
@@ -924,38 +1087,45 @@
         }
       }
     },
-    deleteConnection: function (e) {
-      var self = this;
-      self.$.deleteDialog.toggle();  // set the delete callback
-      // set the delete callback
-      self._deleteCallback = function () {
-        if (e) {
-          e.stopPropagation();
+    dragOverDestination: function(e) {
+    },
+    droppedOnDestination: function(e) {
+      console.log('drop on destino!');
+      console.log('dragged el', this.draggedEl.classList);
+
+      e.target.classList.remove('drag-over');
+      var className = e.target.classList[0],
+          // targetElementId = className.substring(0, className.lastIndexOf('-') ),   
+          // targetField = className.substring(className.lastIndexOf('-') + 1, className.length ),      
+          source = this.findElById(this.draggedEl.classList[0]),
+          target = this.destination;
+      // console.log('clasname: ' + className, 'target elt: ' + targetElementId, targetField, source, target);
+
+        // make the actual connection, returns true if connection was made
+        if ( this.makeConnection(source.element, 'output', target, 'input') ) {
+
+          var srcClone = {
+            id: source.id,
+            name: source.name,
+            element: source.element,
+            field: 'output'
+          };
+          var targetClone = {
+            id: target.id,
+            name: target.id,
+            element: target,
+            field: 'input'
+          };
+
+          this._connections.push({
+            source: srcClone,
+            target: targetClone,
+            // listener: listener // reference to listener function
+          });
+
+          this._drawConnections();
+          return true;
         }
-        var elementInsideId;  // figure out the source
-        // figure out the source
-        var src;
-        if (self._highlightedConnection) {
-          var splitID = self._highlightedConnection.id.split('-');
-          src = splitID[0] + '-' + splitID[1] + '-' + splitID[2];
-          console.log(src);
-          elementInsideId = splitID[3] + '-' + splitID[4] + '-' + splitID[5];
-        } else {
-          var wrapper = null;
-    
-          //TODO make a standard uniform way of finding elements. path[0] is ugly 
-          for (var i = 0; i < e.path.length && !wrapper; i++) {
-            if (e.path[i].classList.contains('wrapper')) {
-              wrapper = e.path[i];
-            }
-          }
-          elementInsideId = wrapper.componentId;
-        }
-        if (!e) {
-          e = undefined;
-        }
-        self.deleteConnectionByID(e, elementInsideId);
-      };
     },
     _deleteBezier: function (e, bezier) {
       var srcId, dstId;
@@ -963,31 +1133,127 @@
       self.$.deleteDialog.toggle();  // set the delete callback
       // set the delete callback
       self._deleteCallback = function () {
-        var idSplit = bezier.id.split('-');  // split ID at number to determine srcId and dstId
-        // split ID at number to determine srcId and dstId
-        var i = 0;
-        while (isNaN(Number(idSplit[i]))) {
-          i++;
-        }
-        dstId = idSplit.slice(i + 1).join('-');
-        srcId = idSplit.slice(0, i).join('-');
-        self.deleteConnectionByID(e, dstId);
-        self._clearHighlightedConnections();
+        var idSplit = bezier.id.split('-');
+        srcId = idSplit.slice(0,3).join('-');
+        dstId = idSplit.slice(3, idSplit.length).join('-');
+
+        self._spliceAudioConnections(srcId, dstId);
       };
     },
     deleteConnectionByID: function (e, dstId) {
       this._connections = this._connections.filter(function (connection) {
         return connection.target.id !== dstId;
       });
-      console.log(this._connections);
       if (e) {
         var marker = e.path[1];
         marker.classList.remove('highlighted');
       }
       this._drawConnections();
     },
+    _spliceAudioConnections: function(srcId, dstId) {
+      var srcNode, srcElem;
+      var dst;
+      var src;
+      var reConnect = true;
+
+      for (var i = 0; i < this._connections.length; i++) {
+
+        if (this._connections[i].target.id === dstId && this._connections[i].source.id === srcId) {
+          srcNode = this._connections[i].source.field;
+          srcElem = this._connections[i].source.element;
+          dstNode = this._connections[i].target.field;
+          dstElem = this._connections[i].target.element;
+
+          if (dstElem[dstNode] instanceof Array) {
+            // if destination is an array, make it empty
+            dstElem[dstNode] = [];
+            this._connections.splice(i,1);
+          }
+
+          else if (typeof(srcElem[srcNode].disconnect) === 'function'){
+            srcElem[srcNode].disconnect();
+            this._connections.splice(i,1);
+          }
+
+          else if (srcElem.outputConnections instanceof Array) {
+            // find the one with this ID
+            for (var j = 0; j < srcElem.outputConnections.length; j++) {
+              console.log(srcElem.outputConnections[j].destination.id)
+              if (srcElem.outputConnections[j].destination.id === dstElem.id) {
+                srcElem.outputConnections.splice(j,1);
+                this._connections.splice(i,1);
+                console.log('spliced!');
+
+                reConnect = false;
+              }
+            }
+          }
+
+          else {
+            console.log('unable to disconnect ' + srcElem[srcNode]);
+          }
+
+        }
+      }
+
+      if (reConnect) {
+        // if srcNode was connected to any other nodes, re-connect them
+        for (var j = 0; j < this._connections.length; j++) {
+          var src = this._connections[j].source;
+          if (src.element === srcElem && src.field === srcNode) {
+            var dstNode = this._connections[j].target.field;
+            var dstElem = this._connections[j].target.element;
+            try {
+              self.makeConnection(srcElem, srcNode, dstElem, dstNode);
+              // srcElem[srcNode].connect(dstElem[dstNode]);
+            } catch(e) {
+              console.log(e);
+            }
+          }
+        }
+      }
+
+      this._highlightedConnection.classList.remove('highlighted');
+      this._highlightedConnection = null;
+
+      this._drawConnections();
+
+    },
+    _deleteAudioConnection: function(connection) {
+      var self = this;
+      var srcElem = connection.source.element;
+      var srcField = connection.source.field;
+      var srcNode = srcElem[srcField];
+      try{
+        srcNode.disconnect();
+      } catch(e) {
+        self.deleteConnection(connection);
+      }
+
+      // reconnect any connections that have srcNode as the source
+      for (var i = 0; i < this._connections.length; i++) {
+        var conn = this._connections[i];
+
+        if (conn.source.element === srcElem && conn.source.field === srcField) {
+          var dstElem = conn.target.element;
+          var dstField = conn.target.field;
+          console.log(dstElem);
+          // do it this way for olos-params
+          self.makeConnection(srcElem, srcField, dstElem, dstField)
+
+          // var dstNode = dstElem[dstField];
+          // srcNode.connect(dstNode);
+        }
+      }
+
+    },
     toggleSetting: function (e) {
-      var button = e.target, componentId = button['component-id'], elementInfo = this.findElById(componentId);
+      console.log(e);
+      var button = e.target,
+          componentId = button.getAttribute('component-id'),
+          elementInfo = this.findElById(componentId);
+
+      console.log(button, componentId);
       button.toggleClass('open');
       elementInfo.settingOpen = elementInfo.settingOpen ? false : true;
       if(elementInfo.settingOpen) {
@@ -1088,7 +1354,7 @@
         if (conn.target.id === target.id && conn.target.field === targetField) {
           return index;
         }
-      }, -1);  // and remove it from connections array
+      }, -1);
       // and remove it from connections array
       if (connWithSameTargetIndex > -1) {
         self._connections.splice(connWithSameTargetIndex, 1);
@@ -1131,28 +1397,96 @@
         var srcClone = {
           id: source.id,
           name: source.name,
-          element: source.element
+          element: source.element,
+          field: sourceField
         };
         var targetClone = {
           id: target.id,
           name: target.name,
-          element: target.element
+          element: target.element,
+          field: targetField
         };
 
-        //set data for the first time.
-        target.element[targetField] = source.element[sourceField];
+        // make the actual connection, returns true if connection was made
+        if ( this.makeConnection(source.element, sourceField, target.element, targetField) ) {
 
-        targetClone.field = targetField;  //self.updateConnections();
-                                          //push the connections anyways because it will be deleted above.
-        //self.updateConnections();
-        //push the connections anyways because it will be deleted above.
-        self._connections.push({
-          source: srcClone,
-          target: targetClone,
-          listener: listener // reference to listener function
-        });
+          this._connections.push({
+            source: srcClone,
+            target: targetClone,
+            listener: listener // reference to listener function
+          });
+          return true;
+        }
+      }
+    },
+    makeConnection: function(src, srcPort, dst, dstPort, svgPath) {
+
+      var isAudioParam = dstPort.indexOf('Param') > -1 ? true : false;
+      var connectorShape = {};
+
+      if (this._dragObj && this._dragObj.connectorShape) {
+        connectorShape = this._dragObj.connectorShape;
+      }
+
+      if (!src.outputConnections) {
+        src.outputConnections = [];
+      }
+
+      var connector = {};
+      connector.line = connectorShape;
+      connector.source = src;
+      connector.destination = dst;
+      connector.sourcePort = src[srcPort];
+      connector.destinationPort = dst[dstPort];
+      connector.destinationLabel = dstPort;
+      src.outputConnections.push(connector);
+
+      // Put an entry into the destinations's inputs
+      if (!dst.inputConnections){
+        dst.inputConnections = new Array();
+      }
+      connector = new Object();
+      connector.line = connectorShape;
+      connector.source = src;
+      connector.destination = dst;
+      connector.sourcePort = src[srcPort];
+      connector.destinationPort = dst[dstPort];
+      connector.destinationLabel = dstPort;
+      dst.inputConnections.push(connector);
+
+      connectorShape.inputConnection = connector;
+      connectorShape.destination = dst;
+      connectorShape = null;
+
+      // save connections to component source and destination
+      if (src[srcPort] instanceof AudioNode && dst[dstPort] instanceof AudioNode) {
+        src[srcPort].connect(dst[dstPort]);
+      } else if (dst[dstPort] instanceof AudioParam) {
+        console.log('audio param connection!');
+        src[srcPort].connect(dst[dstPort]);
+      }
+
+      // new solution for matrix connecting to olos-param
+      else if (dst[dstPort] instanceof Object && src[srcPort] instanceof Array) {
         return true;
       }
+
+      // new solution for audioNode connecting to olos-param
+      // TO DO: disconnect this case
+      else if (src[srcPort] instanceof AudioNode && dst[dstPort] instanceof Object) {
+
+        try {
+          src[srcPort].connect(dst[dstPort]);
+        } catch(e) {
+          throw 'unable to connectaaaaaaa';
+        }
+      }
+
+      else {
+        return false;
+      }
+
+      return true;
     },
     _drawConnections: function () {
       var self = this;
@@ -1420,6 +1754,10 @@
       if (highlighted) {
         aLine.classList.add('highlighted');
       }
+
+      // save to global dragObj
+      this._dragObj.connectorShape = aLine;
+
       Polymer.dom(this.$.svg).appendChild(aLine);
     },
     // zoom either to a specified amount, or add this._zoomStep
@@ -1544,22 +1882,280 @@
       console.log('elements changed!');
     },
 
-    draw: function() {
+    // ===========                  ===================
+    //           |*|  ANIMATION  |*|
+    // via http://stackoverflow.com/a/19772220/2994108
+    animate: function(_fps) {
       var self = this;
+      var fps = _fps || 15;
+      var fpsInterval = 1000/fps;
+      var then = Date.now();
+      var startTime = then;
+      var elapsed;
+      var animationReq;
 
-      function _draw() {
-        window.requestAnimationFrame(function() {
+      self._animationLoop = function(timestamp) {
+        now = Date.now();
+        elapsed = now - then;
+        animationReq = requestAnimationFrame(self._animationLoop);
+
+        if (elapsed > fpsInterval) {
+          then = now - (elapsed % fpsInterval);
+
+          self.clock._draw();
+
           for (var i = 0; i < self._elements.length; i++) {
-            var elem = self._elements[i].element;
-            if (elem._draw) {
-              elem._draw()
+            if (typeof(self._elements[i].element._draw) !== 'undefined') {
+              self._elements[i].element._draw();
             }
           }
-          window.requestAnimationFrame(_draw);
+        }
+      }
+
+      self.cancelAnimation = function() {
+        window.cancelAnimationFrame(animationReq);
+      }
+
+      self._animationLoop(self._startTime);
+    },
+
+    /** Custom Methods **/
+    // list public methods in dropdown
+    _listPublicMethods: function(el) {
+      // var codeEditor = this.$.codeeditor;
+
+      // find this element's public methods
+      var publicMethods = el.publicMethods;
+
+      // TO DO: showpublicmethodsinavenue
+      if (typeof(publicMethods) !== 'undefined') {
+        for (var i = 0; i < publicMethods.length; i++) {
+
+        }
+      }
+    },
+
+    // show code in the codeEditor
+    _showCode: function(el) {
+      var self = this;
+      var codeEditor = this.$.codeEditor;
+      var publicMethods;
+
+      // find this element's public methods
+      try {
+        publicMethods = el.publicMethods;
+      } catch (e) {
+        throw 'unable to show code';
+        return;
+      }
+
+      // this._setupMethodDropdown(this._selElement);
+
+      // for now, just show the first editable method
+      // var methodIndex = 0;
+
+      // show code TO DO: make multiple parts editable
+      // var displayCode = String(el.publicAudio);
+
+      if (typeof(publicMethods) !== 'undefined' && publicMethods.length > 0) {
+        // var methodName = publicMethods[methodIndex];
+        var methodName = this._selectedMethod;
+        var displayCode;
+
+        // if we have already set a custom value for this method, display that
+        if (typeof (this._customMethods[el.id][methodName]) !== 'undefined'){
+          displayCode = this._customMethods[el.id][methodName];
+        } else {
+          displayCode = String(el[methodName]);
+          // remove first and last lines of the function to only show its contents
+          displayCode = displayCode.split('\n');
+          displayCode.shift();
+          displayCode.pop();
+
+          // remove indentation so it looks nice
+          displayCode.forEach(function(row, index){
+            if (row[0] === '\t') {
+              // remove the tab
+              row = row.substr(1);
+            } else if (row[0] === ' ' && row[1] === ' '){
+              // remove the space
+              row = row.substr(6);
+            }
+            displayCode[index] = row;
+          });
+
+          displayCode = displayCode.join('\n');
+        }
+
+        codeEditor.editor.setValue(displayCode);
+
+        // tell codeEditor to update the method when code is changed
+
+        // codeEditor.methodName = methodName;
+        // codeEditor.currentMethod = el['methodName'];
+
+        // this.updateCode();
+
+      }
+      else {
+        codeEditor.setValue('//selected element has no public methods');
+        // this.$.methodDropdown.$.label.innerHTML = 'No Method Selected';
+        // console.log(this.$.methodDropdown);
+        // this.$.methodDropdown.label = 'No Method Selected';
+
+        codeEditor.mirror.on('change', function(e) {
+
         });
       }
-      _draw();
+
+    },
+
+    updateCode: function(x) {
+
+      var codeEditor = this.$.codeEditor;
+      var methodName = this._selectedMethod;
+      var currentMethod = codeEditor.currentMethod;
+      // if there are no errors,
+
+      // set currentMethod
+      var newCode = codeEditor.editor.getValue();
+      var elMethod = this._selElement[methodName];
+
+      // console.log(this);
+      this._selElement[methodName] = Function(newCode).bind(this._selElement);
+
+      this._selElement[methodName]();
+
+      // if (this._autoUpdateCode && (audioContext.currentTime - this._lastCodeUpdate > this._codeUpdateFrequency) ) {
+      //   this._selElement[methodName]();
+      //   this._codeUpdateFrequency = audioContext.currentTime;
+      // }
+
+
+      this._saveCustomMethod(this._selElement, methodName, newCode );
+    },
+
+    // SAVE CUSTOM METHODS
+
+    _initCustomMethodsObj: function(elItem) {
+      this._customMethods[elItem.id] = {};
+    },
+
+    _saveCustomMethod: function(element, methodName, code) {
+      this._customMethods[element.id][methodName] = code;
+
+      // TO DO - ensure that when elements are overwritten,
+      // customMethods related to that element are deleted
+    },
+
+    _setupMethodDropdown: function(el) {
+      var self = this;
+      var publicMethods = el.publicMethods;
+      this._publicMethods = publicMethods;
+
+      if (typeof(this._publicMethods) !== 'undefined' && this._publicMethods.length > 0) {
+        this._selectedMethod = this._publicMethods[0];
+
+        // update paper-menu
+        // (this is a hack to get right label to appear)
+        setTimeout(function() {
+          self.$.selector.select(1);          
+        }, 1);
+        setTimeout(function() {
+          self.$.selector.select(0);          
+        }, 2);
+      }
+    },
+
+    /** custom elements **/
+
+    // convert from an input like olos-element-name-0 to "elementName0"
+    _generateVarName: function(elId) {
+      // remove split at '-' and remove 'olos' first item from array
+      var arr = elId.split('-').slice(1);
+      var varName = '';
+
+      varName = arr[0];
+
+      // if varName has additioal stuff, like sound-file, return soundFile
+      for (var i = 1; i < arr.length; i++ ) {
+        var capString = arr[i].charAt(0).toUpperCase() + arr[i].slice(1);
+        varName += capString;
+      }
+
+      return varName;
+    },
+
+    // store element variable name, and include it in olos.elements Array
+    _addElementVar: function(elItem) {
+      olos[elItem.varName] = elItem.element;
+    },
+
+    // OBSERVER for selected element changed
+    _selElementChanged: function() {
+
+      // 
+
+      // TO DO: if 'undefined' show global methods
+      if (!this._selElement) {
+        // this._selElement = this;
+        return;
+      }
+
+      // TO DO: figure out why this doesnt show as default
+
+      this._selectedMethod = 'No Method Selected';
+      this._setupMethodDropdown(this._selElement);
+      this._listPublicMethods(this._selElement);
+      this._showCode(this._selElement);
+
+      // TO DO: bring back code here
+      // this._methodChanged();
+
+      // remove 'selected' class from other elements, add 'selected' class to this
+      // this._selElement.className = this._selElement.className + ' selected';
+
+      this._updateDocs(this._selElement);
+    },
+
+    /**
+     *  update documentation
+     */
+    _updateDocs: function(element) {
+      var pathToHTML = '../../' + element.nodeName.toLowerCase() ;
+      this._selElementDocPath = pathToHTML;
+    },
+
+    _elInfoButtonClicked: function(e) {
+      this.$.infoDialog.toggle()
+    },
+
+
+    // CODE
+
+    // called when the tab to view this element's code is clicked
+    _elCodeButtonClicked: function(e) {
+      var self = this;
+      self.$.codeDialog.toggle();
+
+      // TO DO: figure out why this is necessary
+      setTimeout( function() {
+        self._showCode(self._selElement);
+      }, 400);
+    },
+
+    _methodChanged: function(e) {
+      var self = this;
+      // if (e) {
+      //   e.preventDefault();
+      //   e.stopPropagation();
+      // }
+      this._selectedMethod = e.detail.item.label;
+      console.log(this._selectedMethod);
+      this._showCode(this._selElement);
+      console.log(e);
     }
+
 
   });
 </script>
