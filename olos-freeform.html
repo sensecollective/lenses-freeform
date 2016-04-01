@@ -9,6 +9,7 @@
 
 <link rel="import" href="../paper-toolbar/paper-toolbar.html">
 <link rel="import" href="../paper-dialog/paper-dialog.html">
+<link rel="import" href="../paper-tooltip/paper-tooltip.html">
 
 <link rel="import" href="../ace-widget/ace-widget.html">
 
@@ -66,7 +67,7 @@
     </style>
     <paper-toolbar class="topnav">
       <h1 style="margin-left:30px;color: #8C6E9D"> (( Olos )) </h1>
-      <olos-clock style="margin-left:30px; height:20px;"></olos-clock>
+      <olos-clock style="margin-left:30px;"></olos-clock>
     </paper-toolbar>
 
     <div class="settings-slideout slideout right">
@@ -197,21 +198,65 @@
 
             <div class="deleteEl" component_id="{{el.id}}" on-click="_deleteElementEvent">X</div>
           </span>
+
             <!-- Input -->
             <div class="connectors-in">
               
               <ul>
                 <template is="dom-repeat" items="{{_checkForInputAttr(index)}}" as="ins">
                      
-                    <li on-dragover="dragOverInArrow" on-drop="droppedOnInArrow" on-dragenter="dragEnterInArrow" on-dragleave="dragLeaveInArrow" on-click="arrowClicked" class$="{{computeClassInArrow(el, ins)}}">
-                      <div class="inputMarker">
+                    <li on-dragover="dragOverInArrow" on-drop="droppedOnInArrow" on-dragenter="dragEnterInArrow" on-dragleave="dragLeaveInArrow" on-click="arrowClicked" class$="{{computeClassInArrow(el, ins)}}"
+                    id$="{{computeIdInArrow(el, ins)}}" >
+
+                      <div class="inputMarker" data-tooltip$="{{computeIdInArrow(el, ins)}}">
                         <div class="delete" on-click="deleteConnection">x</div>
-                        <span class="drop-zone">{{ins}}</span>
+                        <span class="drop-zone" data-tooltip$="{{computeIdInArrow(el, ins)}}">{{ins}}</span>
                       </div>
                     </li>
+                    <paper-tooltip
+                      animation-delay="1"
+                      manual-mode="true"
+                      class$="{{computeIdInArrow(el, ins)}}"
+                      position="left"
+                      for="{{computeIdInArrow(el, ins)}}">
+                      audio input
+                    </paper-tooltip>
                 </template>
               </ul>
+            </div>
 
+            <!-- Params -->
+            <div class="connectors-params">
+              
+              <ul>
+                <template is="dom-repeat" items="{{_checkForAudioParams(index)}}" as="param">
+                     <li class="param-arrow" 
+                        on-dragenter="dragEnterInArrow"
+                        on-dragover="dragOverInArrow"
+                        on-dragleave="dragLeaveInArrow"
+                        on-drop="droppedOnParamArrow" 
+                        class$="{{computeClassInArrow(el, param)}}"
+                        id$="{{computeIdInArrow(el, param)}}"
+                        data-elt$={{el.id}}
+                        data-param$="{{param}}"
+                        data-tooltip$="{{computeIdInArrow(el, param)}}"
+                        >
+                      <div class="inputMarker paramMarker" data-param$="{{param}}" data-elt$="{{el.id}}" data-tooltip$="{{computeIdInArrow(el, param)}}">
+                        <!-- {{param}} -->
+                        <div class="delete" on-click="deleteConnection" data-tooltip$="{{computeIdInArrow(el, param)}}"></div>
+                        <span class="drop-zone" data-tooltip$="{{computeIdInArrow(el, param)}}">
+                        </span>
+                      </div>
+                     </li>
+                    <paper-tooltip
+                      animation-delay="1"
+                      class$="{{computeIdInArrow(el, param)}}"
+                      position="left"
+                      for="{{computeIdInArrow(el, param)}}">
+                      {{param}}
+                    </paper-tooltip>
+                </template>
+              </ul>
             </div>
             <!-- Output -->
             <div class="connectors-out">
@@ -385,6 +430,7 @@
 
       this.initEventListeners();
 
+      this.initEditor();
       // if ($('div.core-overlay-backdrop.core-opened').length > 0) e.preventDefault();
       // });
 
@@ -393,6 +439,10 @@
       // start animation loop
       this.animate();
 
+    },
+
+    initEditor: function() {
+      this.$.codeEditor.editor.$blockScrolling = Infinity;
     },
 
     initEventListeners: function() {
@@ -444,6 +494,8 @@
 
         newEl.style.left = left+'px';
         newEl.style.opacity = resizable ? 1 : 0;
+        // newEl.style.display = 'none';
+        newEl.style.height = '0%';
         //newEl.style.top = '0px';
         //newEl.style.left = '0px';
         //newEl.style.transform = 'translate('+left+'px, '+(top+45)+'px)';
@@ -625,7 +677,7 @@
       if (dataTransfer && dataTransfer.length > 0) {
         var dataSeg = dataTransfer.split(',');
         if (dataSeg.length == 1) {
-          self.addNewElToLens(dataSeg[0], Math.round(e.offsetX / 10) * 10 * self._zoom, Math.round(e.offsetY / 10) * 10 * self._zoom);
+          self.addNewElToLens(dataSeg[0], Math.round(e.clientX / 10) * 10 * self._zoom, Math.round(e.clientY / 10) * 10 * self._zoom);
           return;
         }
       }
@@ -1031,13 +1083,19 @@
 
     },
     dragOverInArrow: function (e) {
+      var tooltip = document.getElementsByClassName(e.target.dataset.tooltip)[0];
+      tooltip.show();
       //important! needed to allow drop
       e.preventDefault();
     },
     dragEnterInArrow: function (e) {
+      var tooltip = document.getElementsByClassName(e.target.dataset.tooltip)[0];
+      tooltip.show();
       e.target.classList.add('drag-over');
     },
     dragLeaveInArrow: function (e) {
+      var tooltip = document.getElementsByClassName(e.target.dataset.tooltip)[0];
+      tooltip.hide();
       e.target.classList.remove('drag-over');
     },
     droppedOnInArrow: function (e) {
@@ -1052,6 +1110,31 @@
       var target = this.findElById(targetElementId);
       this._connectAttributes(source, 'output', target, targetField);
       this._drawConnections();
+      e.stopPropagation();
+    },
+    droppedOnParamArrow: function(e) {
+      var self = this;
+      var selection = e.target;
+      var tooltip = document.getElementsByClassName(selection.dataset.tooltip)[0];
+      var target = this.findElById(selection.dataset.elt);
+      // var targetField = document.getElementById(selection.dataset.param);
+      var targetField = selection.dataset.param;
+      var source = self.findElById(self.draggedEl.classList[0]);
+
+      selection.classList.remove('drag-over');
+      tooltip.hide();
+
+
+
+      // var className = selection.classList[0],
+      //     targetElementId = className.substring(0, className.lastIndexOf('-') ),   
+      //     targetField = className.substring(className.lastIndexOf('-') + 1, className.length ),
+      //     source = self.findElById(self.draggedEl.classList[0]),
+      //     target = self.findElById(targetElementId);
+      console.log(source, target, targetField);
+      // connect source to audioParam
+      this._connectAttributes(source, 'output', target, targetField);
+      // self._drawConnections();
       e.stopPropagation();
     },
     arrowClicked: function (e) {
@@ -1150,11 +1233,27 @@
       }
       this._drawConnections();
     },
+    // delete audio connections
     _spliceAudioConnections: function(srcId, dstId) {
       var srcNode, srcElem;
       var dst;
       var src;
       var reConnect = true;
+
+      if (this._highlightedConnection) {
+        var splitID = this._highlightedConnection.id.split('-');
+        src = splitID[0]+'-'+splitID[1]+'-'+splitID[2];
+        dst = splitID[3] + '-' + splitID[4] + '-' + splitID[5];
+      }
+      else {
+        var wrapper = null;
+        for(var i = 0; i< e.path.length && !wrapper; i++) {
+          if(e.path[i].classList.contains('wrapper')) {
+            wrapper = e.path[i];
+          }
+        }
+        dst = wrapper.getAttribute('component-id');
+      }
 
       for (var i = 0; i < this._connections.length; i++) {
 
@@ -1195,7 +1294,8 @@
 
         }
       }
-
+      console.log('anything to reconnect?');
+      console.log(reConnect);
       if (reConnect) {
         // if srcNode was connected to any other nodes, re-connect them
         for (var j = 0; j < this._connections.length; j++) {
@@ -1248,20 +1348,19 @@
 
     },
     toggleSetting: function (e) {
-      console.log(e);
       var button = e.target,
           componentId = button.getAttribute('component-id'),
           elementInfo = this.findElById(componentId);
 
-      console.log(button, componentId);
       button.toggleClass('open');
       elementInfo.settingOpen = elementInfo.settingOpen ? false : true;
       if(elementInfo.settingOpen) {
         elementInfo.element.style.opacity = 1;
+        elementInfo.element.style.height = 'auto';     
       }
       else {
         elementInfo.element.style.opacity = 0;
-
+        elementInfo.element.style.height = '0%';
       }
     },
     keydownHandler: function (e) {
@@ -1359,6 +1458,7 @@
       if (connWithSameTargetIndex > -1) {
         self._connections.splice(connWithSameTargetIndex, 1);
       }
+
       if (source === target) {
         //if a bubble was dropped on itself
         alert('You cannot make a connection within the same element');
@@ -1706,6 +1806,24 @@
       return Object.keys(published).indexOf('output') > -1 ? true : false;
     },
     /**
+     *  Checks if a component has audioParams. AudioParams must have 'param'
+     *  in the name and be published attributes.
+     *  
+     *  @param  {Object} published Object containing all published attributes
+     *  @return  {Oobject} list of attributes that are audioParams.
+     */
+    _checkForAudioParams: function(index) {
+      var published = this._elements[index].element.properties;
+      if(!published) {
+        return false;
+      }
+      var attrs = Object.keys(published).filter(function(item) {
+        return item.toLowerCase().indexOf("param") > -1;
+      });
+
+      return attrs;
+    },
+    /**
      * Generates unique ids for components
      * @param  {String} elName Component name
      * @return {[type]}        Unique component id
@@ -1859,7 +1977,9 @@
     computeClassInArrow: function (el, ins) {
       return el.element.id + '-' + ins + ' arrow in-arrow';
     },
-
+    computeIdInArrow: function (el, param) {
+      return el.element.id + '-' + param + '-arrow';
+    },
     computeSelect: function (el) {
       return '#' + el.id;
     },
@@ -1879,7 +1999,7 @@
       return 'wrapper';//arguments.join(' ');
     },
     _elementsChanged: function() {
-      console.log('elements changed!');
+
     },
 
     // ===========                  ===================
@@ -2151,9 +2271,7 @@
       //   e.stopPropagation();
       // }
       this._selectedMethod = e.detail.item.label;
-      console.log(this._selectedMethod);
       this._showCode(this._selElement);
-      console.log(e);
     }
 
 

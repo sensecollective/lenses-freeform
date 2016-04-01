@@ -537,6 +537,11 @@
       padding: 0;
     }
 
+    ul.params {
+      top: -12px;
+      left: -5px;
+    }
+
 
     .inputMarker {
         width: 0px; 
@@ -548,7 +553,14 @@
         box-sizing: border-box;
         
     }
-
+    .paramMarker {
+      // border-left: 7px solid rgb(33, 150, 243);
+      border-left: 7px solid rgb(140, 110, 157);
+    }
+    .paramMarker:hover {
+      // border-left: 7px solid rgb(33, 150, 243);
+      border-left: 7px solid rgba(140, 110, 157, 0.5);
+    }
     .in-arrow .highlighted {
       border-left: 7px solid #74E8CD;
     }
@@ -569,7 +581,12 @@
         display: block;
     }
 
-    .connectors-in .drop-zone {
+    .connectors-params {
+      float: left;
+      margin-top:10px;
+    }
+
+    .connectors-in .drop-zone, .connectors-params .drop-zone {
       width: 20px;
       height: 20px;
       border: 1px solid #74E8CD;
@@ -581,12 +598,14 @@
       pointer-events: none;
       vertical-align: middle;
       color: #555;
-
     }
 
     .drag-over .drop-zone  {
       display: inline-block !important;
-        
+    }
+
+    .drag-over .inputMarker {
+      opacity:0.5;
     }
 
     iron-overlay.dialog {
