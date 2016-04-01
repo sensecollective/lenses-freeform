@@ -189,7 +189,7 @@
       <template is="dom-repeat" class="render-after-el" items="{{_elements}}" as="el" index-as="index">
       <!-- el is not working ?!?! -->
 
-        <div id="{{computeWrapperId(el)}}" component-id="{{el.id}}" on-click="wrapperClicked" on-dragstart="dragStartWrapper" on-drag="dragWrapper" on-dragend="dragEndWrapper" draggable="true" class$="{{concatClassNames()}}" style$="{{computeWrapperStyles(el)}}">
+        <div id="{{computeWrapperId(el)}}" component-id="{{el.id}}" on-click="wrapperClicked" on-dragstart="dragStartWrapper" on-drag="dragWrapper" on-dragend="dragEndWrapper" draggable="true" class$="{{computeWrapperClass(el)}}" style$="{{computeWrapperStyles(el)}}">
 
           <span class="elt-top-bar">
             <label>{{el.id}}</label>
@@ -486,16 +486,17 @@
 
         if(resizable) {
           newEl.style.width = '250px';
-          newEl.style.height = '200px';
+          newEl.style.height = '250px';
+          // newEl.style.background = 'rgba(255,255,255,0)';
           newEl.classList.add('lens-component-resizable');
-
+        } else {
+          newEl.style.height = '0%';
         }
         newEl.style.top = (resizable? top+5 : top+45)+'px';
 
         newEl.style.left = left+'px';
         newEl.style.opacity = resizable ? 1 : 0;
         // newEl.style.display = 'none';
-        newEl.style.height = '0%';
         //newEl.style.top = '0px';
         //newEl.style.left = '0px';
         //newEl.style.transform = 'translate('+left+'px, '+(top+45)+'px)';
@@ -535,8 +536,8 @@
       var info = this.$.component_list.getComponentInfo(newEl.tagName.toLowerCase());
       if (info.resizable || info.category === 'visualize') {
         elItem.resizable = true;
-        elItem.width = 250;
-        elItem.height = 200;
+        // elItem.style.width = '255px';
+        // elItem.style.height = '255px';
       }
 
       this._addElementVar(elItem);
@@ -546,6 +547,14 @@
       var newElements = this._elements.slice();
       newElements.push(elItem);
       this.set('_elements', newElements);
+
+      // append el to container (attempt)
+      // setTimeout(function() {
+      //   var wrapper = document.getElementById('wrapper-' + id);
+      //   newEl.top = 0;
+      //   newEl.left = 0;
+      //   wrapper.appendChild(newEl);
+      // }, 30);
     },
     // when delete button is clicked
     _deleteElementEvent: function (e) {
@@ -733,16 +742,12 @@
     dragResize: function (e) {
       var self = this;
       var wrapper = e.target.parentNode;
-      // var wrapper = selection.parentNode;  //var styles = window.getComputedStyle(wrapper);
-                                           // var wrapperTop = parseInt(styles.top.replace('px',''));
-                                           // var wrapperLeft = parseInt(styles.left.replace('px',''));
-                                           // var w =  e.x - wrapperLeft - 65,
-                                           //     h = e.y - wrapperTop - 172;
-      //var styles = window.getComputedStyle(wrapper);
-      // var wrapperTop = parseInt(styles.top.replace('px',''));
-      // var wrapperLeft = parseInt(styles.left.replace('px',''));
-      // var w =  e.x - wrapperLeft - 65,
-      //     h = e.y - wrapperTop - 172;
+
+      var styles = window.getComputedStyle(wrapper);
+      var wrapperTop = parseInt(styles.top.replace('px',''));
+      var wrapperLeft = parseInt(styles.left.replace('px',''));
+      var w =  e.x - wrapperLeft - 65,
+          h = e.y - wrapperTop - 172;
       
       // on last call e.x and e.y are zero.     
       if(e.x === 0 && e.y === 0) {
@@ -777,6 +782,10 @@
       e.target.setAttribute('style', 'top: ' + keepTop +'; left: ' + keepLeft + '; ' + newTrans);
       e.target.style.left = (e.x - wrapperLeft);
       e.target.style.top = (e.y - wrapperTop)
+
+      if (typeof elementInside.resize === 'function' && Date.now() % 5 === 0) {
+        elementInside.resize();
+      }
 
       self._drawConnections();
       e.stopPropagation();
@@ -887,7 +896,7 @@
         this._draggingClone = false;
         this._cloneElement(e);
         return;
-      }  //if resize is being dragged don't do anything (stopPropagation is not doing anything)
+      }
       //if resize is being dragged don't do anything (stopPropagation is not doing anything)
       var target = e.target;
       target.setAttribute('residue-x', 0);
@@ -1117,24 +1126,16 @@
       var selection = e.target;
       var tooltip = document.getElementsByClassName(selection.dataset.tooltip)[0];
       var target = this.findElById(selection.dataset.elt);
-      // var targetField = document.getElementById(selection.dataset.param);
       var targetField = selection.dataset.param;
       var source = self.findElById(self.draggedEl.classList[0]);
 
       selection.classList.remove('drag-over');
       tooltip.hide();
 
-
-
-      // var className = selection.classList[0],
-      //     targetElementId = className.substring(0, className.lastIndexOf('-') ),   
-      //     targetField = className.substring(className.lastIndexOf('-') + 1, className.length ),
-      //     source = self.findElById(self.draggedEl.classList[0]),
-      //     target = self.findElById(targetElementId);
-      console.log(source, target, targetField);
       // connect source to audioParam
-      this._connectAttributes(source, 'output', target, targetField);
-      // self._drawConnections();
+      if ( this._connectAttributes(source, 'output', target, targetField) ) {
+        self._drawConnections();
+      }
       e.stopPropagation();
     },
     arrowClicked: function (e) {
@@ -1148,8 +1149,7 @@
         }
       }
       var sourceTarget = e.path[0].classList.contains('inputMarker') ? 'target' : 'source';
-      var elementInsideId = wrapper.componentId;  //var elementInside = this.findElById(elementInsideId);
-      //var elementInside = this.findElById(elementInsideId);
+      var elementInsideId = wrapper.componentId;
       var connection = this._connections.filter(function (conn) {
         if (conn[sourceTarget].id === elementInsideId) {
           return true;
@@ -1933,16 +1933,17 @@
       return item.length === 0;
     },
     computeWrapperId: function (el) {
-      //console.log('id', el, el.id);
+      var resizable = el.resizable ? ' resizable' : ''
       return 'wrapper-' + el.id;
     },
 
     computeWrapperStyles: function (el) {
-      return 'top: ' + el.top + 'px; left: ' + el.left + 'px; transform: ' + el.transform + '; width: ' + (el.resizable ? 0 : el.width) + 'px; height: ' + (el.resizable ? 0 : el.height) + 'px';
+      return 'top: ' + el.top + 'px; left: ' + el.left + 'px; transform: ' + el.transform + '; width: ' + (el.resizable ? 255 : el.width) + 'px; height: ' + (el.resizable ? 255 : el.height) + 'px';
     },
 
     computeWrapperClass: function (el) {
-      return 'wrapper ' + el.name;
+      var resizable = el.resizable ? ' resizable' : ''
+      return 'wrapper ' + el.name + resizable;
     },
 
     computeCollapseId: function (el) {
@@ -1950,7 +1951,8 @@
     },
 
     computeResizeStyle: function(el) {
-      return 'top: ' + (el.height + 10) + 'px; left: ' + (el.width + 10) + 'px; transform: translate(0px, 0px);';
+      // return 'top: ' + (el.height + 10) + 'px; left: ' + (el.width + 10) + 'px; transform: translate(0px, 0px);';
+      return 'bottom: -10px; right: -10px; transform: translate(0px, 0px);';
     },
 
 

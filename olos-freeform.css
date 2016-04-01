@@ -403,6 +403,12 @@
       box-sizing: border-box;
     }
 
+    .wrapper.resizable {
+      background-color:rgba(255,255,255,0);
+      width:255px;
+      height:255px;
+    }
+
    .wrapper .resize {
       position: absolute;
       right: -5px;
@@ -412,7 +418,6 @@
       border-bottom: 1px  solid #aaa;
       border-right: 1px  solid #aaa;
       cursor: se-resize;
-     
     }  
 
     .lens-component {
@@ -427,9 +432,9 @@
     }
 
     .lens-component-resizable {
-
+        background-color: rgba(255,255,255,0.0);
         max-height: none;
-
+        padding:0px;
     }
 
     /* temp fix for selectors pushing component */
