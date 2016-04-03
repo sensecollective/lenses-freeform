@@ -18,6 +18,7 @@
 <link rel="import" href="../olos-component-list/olos-component-list.html">
 <link rel="import" href="../olos-destination/olos-destination.html">
 <link rel="import" href="../olos-clock/olos-clock.html">
+<link rel="import" href="../olos-piano/olos-piano.html">
 
 <dom-module id="olos-freeform">
   <style>
@@ -42,7 +43,11 @@
   <script>
       audioContext = p5.prototype.getAudioContext();
       Tone.setContext(audioContext);
+
+      // fix a bug
+      p5.prototype._updateNextTouchCoords = function() {}
   </script>
+  <script type="text/javascript" src="../nexusUI/dist/nexusUI.js"></script>
 
 
   <link rel="import" type="css" href="olos-freeform.css">
@@ -68,6 +73,8 @@
     <paper-toolbar class="topnav">
       <h1 style="margin-left:30px;color: #8C6E9D"> (( Olos )) </h1>
       <olos-clock style="margin-left:30px;"></olos-clock>
+      <olos-piano style="margin-left:30px;"></olos-piano>
+
     </paper-toolbar>
 
     <div class="settings-slideout slideout right">
@@ -151,10 +158,15 @@
     <paper-dialog class="elt-dialog" id="codeDialog">
 
       <paper-toolbar>
-        <span class="title float-left">{{_selElement.varName}}</span>
+
+      <paper-icon-button class="float-left play" title="Run Code" icon="av:play-circle-filled" on-click="updateCode">
+          </paper-icon-button>
+          
+        <span class="title">
+          {{_selElement.varName}}</span>
 
 
-        <paper-icon-button class="play" title="Run Code" icon="av:play-circle-filled" on-click="updateCode"></paper-icon-button>
+
 
         <paper-dropdown-menu id="methodDropdown" label="{{_selectedMethod}}" class="dropdown-trigger float-right">
 
@@ -192,7 +204,7 @@
         <div id="{{computeWrapperId(el)}}" component-id="{{el.id}}" on-click="wrapperClicked" on-dragstart="dragStartWrapper" on-drag="dragWrapper" on-dragend="dragEndWrapper" draggable="true" class$="{{computeWrapperClass(el)}}" style$="{{computeWrapperStyles(el)}}">
 
           <span class="elt-top-bar">
-            <label>{{el.id}}</label>
+            <label class$="{{getColor(el)}}" >{{el.id}}</label>
             <label class="elt-info-label" on-click="_elInfoButtonClicked"><iron-icon icon="icons:info-outline"></iron-icon></label>
             <label class="elt-src-label" on-click="_elCodeButtonClicked"><iron-icon icon="icons:code"></iron-icon></label>
 
@@ -206,7 +218,7 @@
                 <template is="dom-repeat" items="{{_checkForInputAttr(index)}}" as="ins">
                      
                     <li on-dragover="dragOverInArrow" on-drop="droppedOnInArrow" on-dragenter="dragEnterInArrow" on-dragleave="dragLeaveInArrow" on-click="arrowClicked" class$="{{computeClassInArrow(el, ins)}}"
-                    id$="{{computeIdInArrow(el, ins)}}" >
+                    id$="{{computeIdInArrow(el, ins)}}" data-tooltip$="{{computeIdInArrow(el, ins)}}">
 
                       <div class="inputMarker" data-tooltip$="{{computeIdInArrow(el, ins)}}">
                         <div class="delete" on-click="deleteConnection">x</div>
@@ -272,6 +284,7 @@
             <template is="dom-if" if="{{!el.resizable}}">
 
               <iron-icon icon="settings" component-id$="{{el.id}}" on-click="toggleSetting" class="setting-btn"></iron-icon>
+              <iron-icon icon="icons:code" class="elt-src-label setting-btn" on-click="_elCodeButtonClicked"></iron-icon>
 
             </template>
 
@@ -302,6 +315,16 @@
   Polymer({
     is: 'olos-freeform',
     properties: {
+
+      scale: {
+        value: [0, 2, 4, 5, 7, 9],
+        type: Array,
+      },
+      rootNote: {
+        value: 48,
+        type: Number
+      },
+
       _connections: {
         type: Array,
         value: function () {
@@ -533,6 +556,8 @@
         publicMethods: newEl.publicMethods
       };
 
+      elItem.category = this.$.component_list.getCategory(elItem.name);
+
       var info = this.$.component_list.getComponentInfo(newEl.tagName.toLowerCase());
       if (info.resizable || info.category === 'visualize') {
         elItem.resizable = true;
@@ -675,18 +700,20 @@
       var self = this;
 
       // e.preventDefault();
+      console.log(e);
 
       //TODO make a standard uniform way of finding elements. path[0] is ugly 
       if (e.path && e.path.length > 0 && e.path[0].classList.contains('resize') > 0) {
         self.dragResizeEnd(e);
       }
       var dataTransfer = e.dataTransfer.getData('text/plain'); 
+
       //data added by component-list
       ////TODO make better
       if (dataTransfer && dataTransfer.length > 0) {
         var dataSeg = dataTransfer.split(',');
         if (dataSeg.length == 1) {
-          self.addNewElToLens(dataSeg[0], Math.round(e.clientX / 10) * 10 * self._zoom, Math.round(e.clientY / 10) * 10 * self._zoom);
+          self.addNewElToLens(dataSeg[0], Math.round(e.layerX / 10) * 10 * self._zoom, Math.round(e.layerY / 10) * 10 * self._zoom);
           return;
         }
       }
@@ -1572,6 +1599,11 @@
       }
 
       // new solution for audioNode connecting to olos-param
+      else if (src[srcPort] instanceof AudioNode && typeof(dst[dstPort].nodeName) !== 'undefined') {
+        console.log('is olos-param');
+        src[srcPort].connect(dst[dstPort]['audioParam']);
+      }
+
       // TO DO: disconnect this case
       else if (src[srcPort] instanceof AudioNode && dst[dstPort] instanceof Object) {
 
@@ -2142,19 +2174,41 @@
       // set currentMethod
       var newCode = codeEditor.editor.getValue();
       var elMethod = this._selElement[methodName];
+      var args = getArgs(elMethod);
 
-      // console.log(this);
+      // var arr = this._selElement[methodName]toString().split('\n');
+
       this._selElement[methodName] = Function(newCode).bind(this._selElement);
+      this._selElement[methodName].name = methodName;
+      // this._selElement[methodName]
 
-      this._selElement[methodName]();
+      try {
+        this._selElement[methodName]();
+      } catch(e) {
+        console.log(e);
+      }
 
       // if (this._autoUpdateCode && (audioContext.currentTime - this._lastCodeUpdate > this._codeUpdateFrequency) ) {
       //   this._selElement[methodName]();
       //   this._codeUpdateFrequency = audioContext.currentTime;
       // }
-
-
       this._saveCustomMethod(this._selElement, methodName, newCode );
+
+      // helper via https://davidwalsh.name/javascript-arguments
+      function getArgs(func) {
+        // First match everything inside the function argument parens.
+        var args = func.toString().match(/function\s.*?\(([^)]*)\)/)[1];
+       
+        // Split the arguments string into an array comma delimited.
+        return args.split(',').map(function(arg) {
+          // Ensure no inline comments are parsed and trim the whitespace.
+          return arg.replace(/\/\*.*\*\//, '').trim();
+        }).filter(function(arg) {
+          // Ensure no undefined values are added.
+          return arg;
+        });
+      }
+
     },
 
     // SAVE CUSTOM METHODS
@@ -2274,6 +2328,13 @@
       // }
       this._selectedMethod = e.detail.item.label;
       this._showCode(this._selElement);
+    },
+
+    // COLOR
+    getColor: function(itemObj) {
+      var c = this.$.component_list.getColor(itemObj);
+      console.log(c);
+      return c;
     }
 
 
