@@ -36,8 +36,15 @@
     }
   </style>
 
+  <script type="text/javascript" src="../nexusUI/dist/nexusUI.js"></script>
+  <script type="text/javascript" src="../lodash/lodash.min.js"></script>
+  <script src="https://cdn.firebase.com/js/client/2.4.2/firebase.js"></script>
+  <script> 
+    var myFirebaseRef = new Firebase("https://olos-wac.firebaseio.com/");
+  </script>
+
   <!-- load external libraries -->
-  <script src="../../Tone.js/build/Tone.js"></script>
+  <script src="../Tone.js/build/Tone.js"></script>
   <script src="../p5js/p5.js"></script>
   <script src="../p5js/p5.sound.js"></script>
   <script>
@@ -47,8 +54,6 @@
       // fix a bug
       p5.prototype._updateNextTouchCoords = function() {}
   </script>
-  <script type="text/javascript" src="../nexusUI/dist/nexusUI.js"></script>
-
 
   <link rel="import" type="css" href="olos-freeform.css">
   <template>
@@ -72,27 +77,61 @@
     </style>
     <paper-toolbar class="topnav">
       <h1 style="margin-left:30px;color: #8C6E9D"> (( Olos )) </h1>
-      <olos-clock style="margin-left:30px;"></olos-clock>
-      <olos-piano style="margin-left:30px;"></olos-piano>
+      <olos-clock id="clock" style="margin-left:30px;"></olos-clock>
+      <olos-piano id="piano" style="margin-left:30px;"></olos-piano>
 
+      <paper-tooltip
+        animation-delay="0.1"
+        position="bottom"
+        for="clock">
+        master tempo is mapped to Oscillator and Matrix
+      </paper-tooltip>
+
+      <paper-tooltip
+        animation-delay="0.1"
+        position="bottom"
+        for="piano">
+        global scale is mapped to Oscillator and Matrix
+      </paper-tooltip>
     </paper-toolbar>
 
     <div class="settings-slideout slideout right">
 
-      <span class="slideout-handle">settings</span>
+      <span class="slideout-handle">Menu</span>
       <div class="slideout-inner">
 
-        <paper-icon-button id="showDataBtn" class="active" icon="view-module" on-click="showDataBtn" alt="show component data">
-          <span>show component input/output</span>
+        <paper-icon-button id="showDataBtn" class="active" icon="clear" on-click="_environmentClear" alt="show component data">
+          <span>clear</span>
         </paper-icon-button>
+        <paper-tooltip
+          animation-delay="0.1"
+          position="left"
+          for="showDataBtn">
+          Clear Canvas
+        </paper-tooltip>
   
-       <!--
-        <core-icon-button id="saveBtn" icon="save" on-click="{{showSaveDialog}}" alt="save">
-        </core-icon-button>
-      -->
+
+        <paper-icon-button id="saveBtn" icon="save" on-click="showSaveDialog" alt="save"><span>save</span>
+        </paper-icon-button>
+        <paper-tooltip
+          animation-delay="0.1"
+          position="left"
+          for="saveBtn">
+          Save
+        </paper-tooltip>
+  
+      
       </div>
     </div>
-
+    <div class="code-container">
+      <paper-icon-button id="showCodeBtn" icon="icons:code" on-click="showGlobalCode" alt="show global code"></paper-icon-button>
+    </div>
+    <paper-tooltip
+      animation-delay="0.1"
+      position="right"
+      for="showCodeBtn">
+      edit global code
+    </paper-tooltip>
 
     <div class="zoom-slideout slideout left">
 
@@ -129,6 +168,12 @@
       <olos-destination id="olos-destination" class="olos-destination" on-dragover="draggedOverContainer" 
       style="position:absolute; right:0px;"></olos-destination>
     </div>
+    <paper-tooltip
+      animation-delay="0.1"
+      position="left"
+      for="wrapper-olos-destination">
+      audio output
+    </paper-tooltip>
 
 
     <!-- MODALS -->
@@ -142,11 +187,11 @@
 
     <!-- Title and Author fields + save action in dialog-->
     <lens-ui-dialog class="dialog" id="savedetails">
-      <h1><paper-input label="Title of Lens" value="{{lensTitle}}"></paper-input></h1>
-      <h3><paper-input label="Your Name" value="{{lensAuthor}}"></paper-input></h3>
-      <paper-icon-button class="save" affirmative="" icon="check" ng-click="saveLens()" on-click="_saveLens">
-      <paper-icon-button class="" dismissive="" icon="clear"></paper-icon-button> 
-    </paper-icon-button></lens-ui-dialog>
+      <h1><paper-input label="Title" value="{{olosTitle}}"></paper-input></h1>
+      <h3><paper-input label="Your Name" value="{{olosAuthor}}"></paper-input></h3>
+      <paper-icon-button class="save" affirmative="" icon="check" on-click="_saveOlos"></paper-icon-button>
+      <!-- <paper-icon-button class="" dismissive="" icon="clear" n-click="_noDelete"></paper-icon-button> -->
+    </lens-ui-dialog>
 
     <!-- Docs Dialog -->
     <paper-dialog class="elt-dialog" id="infoDialog">
@@ -317,7 +362,7 @@
     properties: {
 
       scale: {
-        value: [0, 2, 4, 5, 7, 9],
+        value: [0, 2, 4, 7, 9],
         type: Array,
       },
       rootNote: {
@@ -431,6 +476,11 @@
       _customMethods: {
         value: {},
         type: Object
+      },
+      // this item has public methods
+      publicMethods: {
+        type: Array,
+        value: ['globalCode', 'globalScale', 'globalClock']
       }
     },
     ready: function () {
@@ -514,12 +564,15 @@
           newEl.classList.add('lens-component-resizable');
         } else {
           newEl.style.height = '0%';
+
+          setTimeout(function() {
+            newEl.style.display = 'none';
+          }, 100);
         }
         newEl.style.top = (resizable? top+5 : top+45)+'px';
 
         newEl.style.left = left+'px';
         newEl.style.opacity = resizable ? 1 : 0;
-        // newEl.style.display = 'none';
         //newEl.style.top = '0px';
         //newEl.style.left = '0px';
         //newEl.style.transform = 'translate('+left+'px, '+(top+45)+'px)';
@@ -587,12 +640,9 @@
       var compId = e.target.component_id;
       self._deleteElementById(compId);
     },
-    _deleteElementById: function (compId) {
+    _deleteElementById: function (compId, dontAsk) {
       var self = this;
       var compId = compId;
-      console.log(compId);
-      ////// temporarily removing the deleteDialog and deleteToggle
-      self.$.deleteDialog.toggle();  // set the delete callback
 
       // // set the delete callback
       self._deleteCallback = function () {
@@ -629,8 +679,15 @@
         // remove elements
         Polymer.dom(self.$.container).removeChild(embeddedEl);
       };
+
+      if (!dontAsk) {
+        self.$.deleteDialog.toggle();  // set the delete callback
+      } else {
+        self._deleteCallback();
+      }
     },
     removeAllConnectionsFromElement: function (elId) {
+      console.log(elId);
       var badConnections = this._connections.filter(function (conn, index) {
         
         //filter if element is source or target of a connection
@@ -647,13 +704,20 @@
 
       this._connections = goodConnections;
 
+
+
       // disconnect the badConnections
       for (var i = 0 ; i < badConnections.length; i++) {
         var src = badConnections[i].source.element[badConnections[i].source.field];
         if (src instanceof AudioNode) {
           this._deleteAudioConnection(badConnections[i]);
         } else {
-          // console.log('removed connection ' + src + ' is not audio!!');
+          try {
+            // for olos.matrix only
+            badConnections[i].source.element.disconnect(badConnections[i].target.id);
+          } catch (e) {
+            console.log('unable to disconnect ', e);
+          }
         }
       }
 
@@ -700,7 +764,6 @@
       var self = this;
 
       // e.preventDefault();
-      console.log(e);
 
       //TODO make a standard uniform way of finding elements. path[0] is ugly 
       if (e.path && e.path.length > 0 && e.path[0].classList.contains('resize') > 0) {
@@ -713,7 +776,7 @@
       if (dataTransfer && dataTransfer.length > 0) {
         var dataSeg = dataTransfer.split(',');
         if (dataSeg.length == 1) {
-          self.addNewElToLens(dataSeg[0], Math.round(e.layerX / 10) * 10 * self._zoom, Math.round(e.layerY / 10) * 10 * self._zoom);
+          self.addNewElToLens(dataSeg[0], Math.round(e.layerX / 10) * 10, Math.round(e.layerY / 10) * 10);
           return;
         }
       }
@@ -856,7 +919,7 @@
         dragImgEl.id = 'wrapper-drag-img';
         dragImgEl.textContent = 'a';
         document.body.appendChild(dragImgEl);
-      }  //keep dragImage outside the canvas
+      }
       //keep dragImage outside the canvas
       e.dataTransfer.setDragImage(dragImgEl, -2000, -2000);
     },
@@ -1068,7 +1131,7 @@
         this.svgTop = svgRect.top;
         this.svgLeft = svgRect.left;
       }
-      this.startPointX = e.x / this._zoom - this.svgLeft;
+      this.startPointX = e.x / this._zoom - this.svgLeft; // document.body.scrollLeft ?
       this.startPointY = e.y / this._zoom - this.svgTop;  // create temp bezier
       // create temp bezier
       
@@ -1383,11 +1446,13 @@
       elementInfo.settingOpen = elementInfo.settingOpen ? false : true;
       if(elementInfo.settingOpen) {
         elementInfo.element.style.opacity = 1;
-        elementInfo.element.style.height = 'auto';     
+        elementInfo.element.style.height = 'auto';
+        elementInfo.element.style.display = 'block';
       }
       else {
         elementInfo.element.style.opacity = 0;
         elementInfo.element.style.height = '0%';
+        elementInfo.element.style.display = 'none';
       }
     },
     keydownHandler: function (e) {
@@ -1673,28 +1738,6 @@
       }
     },
     /**
-     * returns final result component to create viewer
-     * @return {Object} e.g {componentName: 'lens-v-z-g-bar-chart-0', componentState: (all state data including input)}
-     */
-    getFinalResult: function () {
-      if (this._outputComponents.length > 0) {
-        //TODO: multiple outputComponents
-        var component = _.clone(this.findElById(this._outputComponents[0]));  //for viz components save input, for the rest save output
-        //for viz components save input, for the rest save output
-        if (component.name.indexOf('-viz-') > 0) {
-          component.input = component.element.input;
-        } else {
-          component.output = component.element.output;
-        }
-        var componentName = component.name;
-        var componentState = JSON.stringify(component, this.removeDomObjects);
-        return {
-          componentName: componentName,
-          componentState: componentState
-        };
-      }
-    },
-    /**
      * Scaffold a new th-connector from state data. Usage: 
      *  var newConnector = document.createElement('th-connector');
      *  newConnector.scaffoldFromData(elements, connections)
@@ -1762,9 +1805,9 @@
         var cloned = _.clone(el);
         Object.keys(domObject.properties).forEach(function (attr) {
           //ignore input attribute and output (except where the component is th-table-data)
-          if (attr === 'chartData' || attr.indexOf('input') === 0 || attr === 'output' && el.name !== 'lens-input-paste') {
-            return;
-          }
+          // if (attr === 'chartData' || attr.indexOf('input') === 0 || attr === 'output' && el.name !== 'lens-input-paste') {
+          //   return;
+          // }
           cloned[attr] = domObject[attr];
         });
         return cloned;
@@ -1772,20 +1815,24 @@
       var retObj = {
         elements: toDumpEls,
         connections: this._connections,
-        outputComponents: this._outputComponents
+        outputComponents: this._outputComponents,
+        customMethods: this._customMethods
       };
       var ret = JSON.stringify(retObj, this.removeDomObjects);  //var connectionsJSON = JSON.stringify(this._connections , this.removeDomObjects);
       //var connectionsJSON = JSON.stringify(this._connections , this.removeDomObjects);
       return ret;
     },
-    _saveLens: function () {
-      var btn = document.getElementById('saveLensBtn');
-      if (typeof btn !== 'undefined') {
-        btn.click();
-        console.log('btn!');
-      } else {
-        console.log('no button');
-      }
+    _saveOlos: function () {
+      var self = this;
+      var data = this.dumpData();
+      var dataObj = {
+        name: self.olosTitle,
+        author: self.olosAuthor,
+        structure: data
+      };
+
+      myFirebaseRef.child('projects').push(dataObj);
+      this.$.savedetails.close();
     },
     removeDomObjects: function (key, value) {
       if (value instanceof HTMLElement)
@@ -2152,14 +2199,14 @@
 
       }
       else {
-        codeEditor.setValue('//selected element has no public methods');
+        codeEditor.editor.setValue('//selected element has no public methods');
         // this.$.methodDropdown.$.label.innerHTML = 'No Method Selected';
         // console.log(this.$.methodDropdown);
         // this.$.methodDropdown.label = 'No Method Selected';
 
-        codeEditor.mirror.on('change', function(e) {
+        // codeEditor.mirror.on('change', function(e) {
 
-        });
+        // });
       }
 
     },
@@ -2335,8 +2382,52 @@
       var c = this.$.component_list.getColor(itemObj);
       console.log(c);
       return c;
-    }
+    },
 
+    // GLOBAL CODE
+
+    showGlobalCode: function() {
+      // this.$.globalDialog.toggle();
+      this._selElement = this;
+
+      this._showCode(this);
+      this.$.codeDialog.toggle();
+
+    },
+
+    // public methods
+    globalCode: function() {
+      //hello world!
+      // Write code here, access elements by their variable name
+    },
+
+    globalScale: function() {
+      this.scale = [0, 2, 4, 5, 7, 9];
+      this.rootNote = 60;
+    },
+
+    // clear elements
+    _environmentClear: function() {
+      var j;
+
+      if(confirm('Are you sure you want to clear your entire sketch?')) {
+        // dispose of every element
+        for (var j = this._elements.length -1 ; j >= 0 ; j--) {
+          console.log(j);
+          this._deleteElementById(this._elements[j].id, true);
+        }
+
+        // delete any remaining connections
+        for (j = this._connections.length -1 ; j >= 0 ; j--) {
+          this._deleteAudioConnection(this._connections[i]);
+        }
+
+        // re-initialize variables:
+        this._selElement = undefined;
+        this._highlightedConnection = undefined;
+        this.connections = [];
+      }
+    },
 
   });
 </script>

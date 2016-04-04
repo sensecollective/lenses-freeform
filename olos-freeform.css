@@ -172,6 +172,14 @@
     }
    
 
+    .code-container {
+      bottom: 20px;
+      left: 10px;
+      display: block;
+      float: right;
+      position: fixed;
+      z-index:200;
+    }
 
     .settings-slideout {
       top: 30px;
@@ -312,6 +320,8 @@
       z-index: 300;
       background-color: #FFF;
       border: 1px solid #EEE;
+      display:block;
+      clear:both;
     }
 
     #showDataBtn span {
@@ -338,12 +348,25 @@
 
     }      
 
+    #showCodeBtn {
+      z-index: 300;
+      background-color: #FFF;
+      border: 1px solid #EEE;
+      cursor: pointer;
+    }
+
+    #showCodeBtn:hover {
+      background-color: #F6F6F6;
+    }
+
     #saveBtn {
       /*
       position: fixed;
       top: 5px;
       right: 60px;
       */
+      display:block;
+      clear:both;
       z-index: 300;
       background-color: #FFF;
       border: 1px solid #EEE;
@@ -424,7 +447,7 @@
 
     .lens-component {
         border: 1px solid #e5e5e5;
-        background-color: rgba(255,255,255,0.6);
+        background-color: rgba(255,255,255,0.9);
         padding: 4px;
         margin-top: -6px;
         transition: opacity 0.3s ease-in;
@@ -869,7 +892,9 @@
 .color-secondary-2-3 { background-color: #CBFA45 }
 .color-secondary-2-4 { background-color: #D2FB5C }
 
-
+.control-color {
+  background-color: springgreen;
+}
 
 /* As RGBa codes */
 
