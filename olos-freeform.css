@@ -7,6 +7,31 @@
 
     }
 
+    /* general style */
+
+    .float-left {
+      float: left;
+    }
+
+    .float-right {
+      float: right;
+    }
+
+    .pad-right {
+      padding-right: 40px;
+    }
+
+    paper-icon-button.play {
+      color: #E57F7F;
+      width: 45px;
+    }
+
+    paper-icon-button.play:hover {
+      color:#DF4949;
+    }
+
+    /* right / left slide */
+
     .slideout {
       position: fixed;
       -webkit-transition-duration: 0.3s;
@@ -14,6 +39,10 @@
       -o-transition-duration: 0.3s;
       transition-duration: 0.3s;
       z-index: 200;
+      height: 100px;
+/*      transform: translateX(50px);
+*/    
+      width: 50px;
     }
 
     .slideout-inner {
@@ -23,6 +52,7 @@
       -o-transition: all 0.3s, opacity 0.7s;
       transition: all 0.3s, opacity 0.7s;
       opacity: 0;
+
     }
 
     .slideout:hover .slideout-inner {
@@ -53,7 +83,7 @@
     }
     .right .slideout-handle {
         border-top: 1px solid #eee;  
-        transform: translate(30px,30px) rotate(-90deg);
+        transform: translate(-10px,30px) rotate(-90deg);
     }
 
 
@@ -70,19 +100,23 @@
     }
 
     .right .slideout-handle::before {
-        content: '△';
+        content: '\02191';
+        // overflow:visible;
     }
     .right:hover .slideout-handle::before {
-        content: '▽';
+        content: '\02193';
+        // overflow:visible;
         line-height: 0.7em;
     }
 
     .left .slideout-handle::before {
-        content: '▽';
+        content: '\02193';
+        overflow:visible;
         line-height: 0.7em;
     }
     .left:hover .slideout-handle::before {
-        content: '△';
+        content: '\02191';
+        overflow:visible;
         line-height: 1.1em;
     }
 
@@ -93,14 +127,14 @@
     }
     .component-slideout .slideout-inner {
       top: 140px;
-      right: -230px;
+      right: -180px;
     }
     .component-slideout .slideout-inner {
       top: 140px;
-      right: -230px;
+      right: -180px;
     }
     .component-slideout:hover {
-      right: 230px;
+      right: 180px;
     }
     .component-slideout:hover .slideout-inner {
       right: 0;
@@ -111,8 +145,8 @@
 
 
     .output-slideout {
-      top: 295px;
-      right: -15px;
+      bottom: 0px;
+      right: 0px;
     }
     .output-slideout .slideout-inner {
       top: 280px;
@@ -124,10 +158,10 @@
       right: -130px;
     }
     .output-slideout:hover {
-      right: 130px;
+      // right: 130px;
     }
     .output-slideout:hover .slideout-inner {
-      right: 0;
+      // right: 0;
     }
 
     .output-slideout .label {
@@ -138,10 +172,18 @@
     }
    
 
+    .code-container {
+      bottom: 20px;
+      left: 10px;
+      display: block;
+      float: right;
+      position: fixed;
+      z-index:200;
+    }
 
     .settings-slideout {
       top: 30px;
-      right: 12px;
+      right: -8px;
     }
     .settings-slideout .slideout-inner {
       top: 30px;
@@ -196,7 +238,7 @@
       padding: 2px;
     }
 
-    .output-selector .core-selected {
+    .output-selector .iron-selected {
       background-color: #EEE;
     } 
 
@@ -208,9 +250,9 @@
       background-color: #FFF;
       z-index: 201;
 
-    }	
+    } 
 
-    #component_list /deep/ core-menu {
+    #component_list /deep/ iron-menu {
       background-color: rgba(255,255,255,0.8);
     }
 
@@ -278,6 +320,8 @@
       z-index: 300;
       background-color: #FFF;
       border: 1px solid #EEE;
+      display:block;
+      clear:both;
     }
 
     #showDataBtn span {
@@ -298,11 +342,22 @@
       display: block;
     }
 
-    core-icon-button.active, #showDataBtn.active {
+    iron-icon-button.active, #showDataBtn.active {
       background-color: #EEE;
       border: 1px solid #888;
 
     }      
+
+    #showCodeBtn {
+      z-index: 300;
+      background-color: #FFF;
+      border: 1px solid #EEE;
+      cursor: pointer;
+    }
+
+    #showCodeBtn:hover {
+      background-color: #F6F6F6;
+    }
 
     #saveBtn {
       /*
@@ -310,6 +365,8 @@
       top: 5px;
       right: 60px;
       */
+      display:block;
+      clear:both;
       z-index: 300;
       background-color: #FFF;
       border: 1px solid #EEE;
@@ -362,16 +419,19 @@
       border: 1px solid #eee;
       display: inline-block;
       position: absolute;
-      /*margin: 30px 20px;
-      margin-left: 60px;*/
-      min-height: 80px;
+      max-height: 50px;
       background-color: rgba(255,255,255,0.85);
       overflow: hide;
       min-width: 110px;
       min-height: 30px;
-
-      /* This makes things *much* easier?!?! */
       box-sizing: border-box;
+    }
+
+    .wrapper.resizable {
+      background-color:rgba(255,255,255,0);
+      width:255px;
+      height:255px;
+      max-height: 1000px;
     }
 
    .wrapper .resize {
@@ -383,8 +443,34 @@
       border-bottom: 1px  solid #aaa;
       border-right: 1px  solid #aaa;
       cursor: se-resize;
-     
     }  
+
+    .lens-component {
+        border: 1px solid #e5e5e5;
+        background-color: rgba(255,255,255,0.9);
+        padding: 4px;
+        margin-top: -6px;
+        transition: opacity 0.3s ease-in;
+        width: 300px;
+        /*overflow-y: scroll;*/
+        /*max-height: 200px;*/
+    }
+
+    .lens-component-resizable {
+        background-color: rgba(255,255,255,0.0);
+        max-height: none;
+        padding:0px;
+    }
+
+    /* temp fix for selectors pushing component */
+    /deep/ lens-u-data-selector {
+      position: absolute;
+      height: initial !important;
+      top: 0;
+      right: 0;
+      z-index: 10;
+      background-color: rgba(255,255,255,0.9);
+    }
 
     .selected-element {
       border: 1px solid #888;
@@ -425,6 +511,33 @@
       color: #000;
     }
 
+    /*
+    
+      element top nav
+
+     */
+    .elt-top-bar {
+       display:inline-block;
+    }
+
+    .wrapper .elt-top-bar iron-icon {
+       width:12px;
+     }
+
+    .wrapper label.elt-info-label {
+      left: initial;
+      right: 15px;
+      top: -20px;
+      cursor:help;
+    }
+
+    .wrapper label.elt-src-label {
+      left: initial;
+      right: 0px;
+      top: -20px;
+      cursor: alias;
+    }
+
 
 /*      .wrapper .resize {
       position: absolute;
@@ -454,6 +567,11 @@
       padding: 0;
     }
 
+    ul.params {
+      top: -12px;
+      left: -5px;
+    }
+
 
     .inputMarker {
         width: 0px; 
@@ -465,7 +583,14 @@
         box-sizing: border-box;
         
     }
-
+    .paramMarker {
+      // border-left: 7px solid rgb(33, 150, 243);
+      border-left: 7px solid rgb(140, 110, 157);
+    }
+    .paramMarker:hover {
+      // border-left: 7px solid rgb(33, 150, 243);
+      border-left: 7px solid rgba(140, 110, 157, 0.5);
+    }
     .in-arrow .highlighted {
       border-left: 7px solid #74E8CD;
     }
@@ -486,7 +611,12 @@
         display: block;
     }
 
-    .connectors-in .drop-zone {
+    .connectors-params {
+      float: left;
+      margin-top:10px;
+    }
+
+    .connectors-in .drop-zone, .connectors-params .drop-zone {
       width: 20px;
       height: 20px;
       border: 1px solid #74E8CD;
@@ -498,32 +628,34 @@
       pointer-events: none;
       vertical-align: middle;
       color: #555;
-
     }
 
     .drag-over .drop-zone  {
       display: inline-block !important;
-        
     }
 
-    core-overlay.dialog {
+    .drag-over .inputMarker {
+      opacity:0.5;
+    }
+
+    iron-overlay.dialog {
       padding: 5px;
       background-color: white;
       border: 1px solid black;
     }
 
-    core-overlay.dialog core-icon-button {
+    iron-overlay.dialog iron-icon-button {
       padding: 0px;
       float: right;
     }
 
-    core-overlay.dialog core-icon-button[affirmative]:hover {
+    iron-overlay.dialog iron-icon-button[affirmative]:hover {
       color: green;
 
     }
 
 
-    core-overlay.dialog core-icon-button[dismissive]:hover {
+    iron-overlay.dialog iron-icon-button[dismissive]:hover {
       color: red;
 
     }
@@ -580,6 +712,7 @@
       margin: 2px;
       padding: 2px;
       border: 1px solid #FFF;
+      cursor:pointer;
     }
 
     .setting-btn:hover {
@@ -587,12 +720,12 @@
       border: 1px solid #EEE;
     }
 
-    .setting-btn /deep/ core-icon {
+    .setting-btn /deep/ iron-icon {
       width: 20px;
       height: 20px;
     }
 
-    core-icon-button.open {
+    iron-icon.open {
       background-color: #D5D5D5;
       border: 1px solid #AAA;
     }
@@ -605,7 +738,53 @@
       z-index: 200;
     }
 
+    .output {
+      position:fixed;
+      z-index: 0;
+      height: 100px;
+      width: 50px;
+      pointer-events:all;
+      display:inline-block;
+    }
 
+
+
+    iframe.docs-frame {
+      width:100%;
+      position: relative;
+      height: 100%;
+      padding: 0px;
+      margin:0px;
+    }
+
+    paper-dialog.elt-dialog {
+      width:680px;
+      height:450px;
+      padding: 0px;
+      margin:0px;
+    }
+
+    paper-dialog > *:first-child {
+      margin-top:0px;
+    }
+
+    /*
+    
+      Code Editor
+
+     */
+      #codeDialog {
+        background: rgba(255,255,255,0.5);
+      }
+      ace-widget {
+        width: 680px;
+        height: 100%;
+        opacity:0.9;
+      }
+      /* opacity for this theme only (quick hack) */
+      .ace-solarized-light {
+        background-color: rgba(253,246,227,.4);
+      }
     /*
     
       Styles for inside of the components.
@@ -636,7 +815,7 @@
       padding: 1px;
       border: 1px solid #EEE;
     }
-    *::shadow .th-container .selector .core-selected {
+    *::shadow .th-container .selector .iron-selected {
       background-color: #ccc;
 
     }
@@ -650,7 +829,7 @@
       padding: 3px;
       width: 5em; 
     }
-    *::shadow .th-container core-icon-button {
+    *::shadow .th-container iron-icon-button {
       margin: 0;
 
     }
@@ -676,4 +855,63 @@
           
     } 
 
-}         
+}
+
+
+
+/* Palette URL: http://paletton.com/#uid=74M1j1k77rV42co1LjKgcK4cNPJkabsM5mfM3fmWnrCmkOHxkabsM5mfM3fmWnrCmkOHxkabsM5mfM3fmWnrCmkOHx */
+
+/* Feel free to copy&paste color codes to your application */
+
+
+/* CSS - Cascading Style Sheet */
+/* Palette color codes */
+/* Palette URL: http://paletton.com/#uid=35y0u1kkny283ZHj5ZBbka9hzank4Y-L1f+l7aWD4QkU6Pjukb7Eq7elp3ys2nbObkiRB */
+
+/* Feel free to copy&paste color codes to your application */
+
+
+/* As hex codes */
+
+.color-primary-0 { background-color: #F7E0FF } /* Main Primary color */
+.color-primary-1 { background-color: #FFC9D1 }
+.color-primary-2 { background-color: #FD7D8F }
+.color-primary-3 { background-color: #B29297 }
+.color-primary-4 { background-color: #9E777D }
+
+
+.color-secondary-1-0 { background-color: #95B1AB } /* Main Secondary color (1) */
+.color-secondary-1-1 { background-color: #F3FDFB }
+.color-secondary-1-2 { background-color: #BCF2E8 }
+.color-secondary-1-3 { background-color: #5A6A67 }
+.color-secondary-1-4 { background-color: #4E635F }
+
+.color-secondary-2-0 { background-color: #E0F6A0 } /* Main Secondary color (2) */
+.color-secondary-2-1 { background-color: #98A27D }
+.color-secondary-2-2 { background-color: #CED4BD }
+.color-secondary-2-3 { background-color: #CBFA45 }
+.color-secondary-2-4 { background-color: #D2FB5C }
+
+.control-color {
+  background-color: springgreen;
+}
+
+/* As RGBa codes */
+
+.rgba-primary-0 { color: rgba(243, 88,110,1) }  /* Main Primary color */
+.rgba-primary-1 { color: rgba(254,191,199,1) }
+.rgba-primary-2 { color: rgba(254,103,124,1) }
+.rgba-primary-3 { color: rgba( 77, 50, 54,1) }
+.rgba-primary-4 { color: rgba( 79, 35, 41,1) }
+
+.rgba-secondary-1-0 { color: rgba(149,177,171,1) }  /* Main Secondary color (1) */
+.rgba-secondary-1-1 { color: rgba(243,253,251,1) }
+.rgba-secondary-1-2 { color: rgba(188,242,232,1) }
+.rgba-secondary-1-3 { color: rgba( 90,106,103,1) }
+.rgba-secondary-1-4 { color: rgba( 78, 99, 95,1) }
+
+.rgba-secondary-2-0 { color: rgba(224,246,160,1) }  /* Main Secondary color (2) */
+.rgba-secondary-2-1 { color: rgba(152,162,125,1) }
+.rgba-secondary-2-2 { color: rgba(206,212,189,1) }
+.rgba-secondary-2-3 { color: rgba(203,250, 69,1) }
+.rgba-secondary-2-4 { color: rgba(210,251, 92,1) }
